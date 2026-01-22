@@ -1,0 +1,24 @@
+{
+  "name": "task-executor",
+  "version": "1.0.0",
+  "description": "AgentTasker - Parallel task execution engine for Clawdbot",
+  "main": "agent_tasker.py",
+  "author": "Clawdbot Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clawdbot/skills"
+  },
+  "keywords": [
+    "clawdbot",
+    "skill",
+    "parallel",
+    "task-execution",
+    "threading",
+    "async",
+    "concurrent"
+  ],
+  "scripts": {
+    "test": "python3 examples/basic_usage.py"
+  }
+}

@@ -1,0 +1,3 @@
+# AgentTasker has no external dependencies
+# Uses Python standard library only
+# Tested with Python 3.7+
