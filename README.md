@@ -45,7 +45,7 @@ Public MCP tools:
 
 ### Recommended: `uvx`
 
-After publishing to PyPI:
+Once the package is live on PyPI:
 
 ```bash
 uvx agent-tasker-mcp-server --workers 8
@@ -59,7 +59,7 @@ uvx --from git+https://github.com/S3bRR/agent-tasker-mcp.git agent-tasker-mcp-se
 
 ### `pipx`
 
-After publishing to PyPI:
+Once the package is live on PyPI:
 
 ```bash
 pipx install agent-tasker-mcp-server
@@ -183,6 +183,17 @@ If an upstream dependency fails, downstream tasks are marked failed and do not r
 
 The response is ordered to match the input task list, which makes it easier for models to consume without extra reconciliation logic.
 
+## Release Process
+
+Releases are tag-driven.
+
+1. update `pyproject.toml` and `server.json` to the same version
+2. commit and push to `main`
+3. create and push a matching tag such as `v1.0.0`
+4. GitHub Actions runs tests, builds the package, publishes to PyPI through Trusted Publishing, and then publishes `server.json` to the MCP Registry
+
+The release workflow rejects version drift: the pushed tag, `pyproject.toml`, and `server.json` must match exactly.
+
 ## Limits
 
 Optional environment variables:
@@ -225,13 +236,7 @@ Run tests:
 
 ## Packaging
 
-This repo includes [server.json](./server.json) for MCP Registry publication.
-
-The intended public release model is:
-
-1. publish `agent-tasker-mcp-server` to PyPI
-2. keep the package version and `server.json` version identical
-3. publish the MCP metadata to the MCP Registry
+This repo includes [server.json](./server.json) for MCP Registry publication and a GitHub Actions workflow that publishes both the PyPI package and MCP metadata from a version tag.
 
 ## License
 

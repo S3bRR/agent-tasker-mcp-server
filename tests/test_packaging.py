@@ -20,6 +20,7 @@ class PackagingTests(unittest.TestCase):
         cls.pyproject = (cls.root / "pyproject.toml").read_text(encoding="utf-8")
         cls.readme = (cls.root / "README.md").read_text(encoding="utf-8")
         cls.server_manifest = json.loads((cls.root / "server.json").read_text(encoding="utf-8"))
+        cls.release_workflow = (cls.root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
     def test_server_manifest_matches_package_metadata(self) -> None:
         package_name = _match(r'^name = "([^"]+)"$', self.pyproject)
@@ -36,6 +37,15 @@ class PackagingTests(unittest.TestCase):
         marker = f"mcp-name: {self.server_manifest['name']}"
         self.assertIn(marker, self.readme)
         self.assertRegex(self.server_manifest["name"], r"^io\.github\.[^/]+/.+$")
+
+    def test_release_workflow_matches_publish_contract(self) -> None:
+        workflow = self.release_workflow
+        self.assertIn('tags:\n      - "v*"', workflow)
+        self.assertIn("environment: pypi", workflow)
+        self.assertIn("uses: pypa/gh-action-pypi-publish@release/v1", workflow)
+        self.assertIn("run: ./mcp-publisher login github-oidc", workflow)
+        self.assertIn("run: ./mcp-publisher publish", workflow)
+        self.assertIn("Verify tag matches package metadata", workflow)
 
 
 if __name__ == "__main__":

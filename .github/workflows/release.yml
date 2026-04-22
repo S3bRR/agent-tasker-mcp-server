@@ -8,6 +8,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: pypi
     permissions:
       contents: read
@@ -24,6 +25,27 @@ jobs:
 
       - name: Install build tools
         run: python -m pip install --upgrade build
+
+      - name: Verify tag matches package metadata
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import tomllib
+          from pathlib import Path
+
+          root = Path(".")
+          tag = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+          server_json = json.loads((root / "server.json").read_text(encoding="utf-8"))
+          package_version = pyproject["project"]["version"]
+          server_version = server_json["version"]
+
+          if tag != package_version or tag != server_version:
+              raise SystemExit(
+                  f"Version mismatch: tag={tag}, pyproject.toml={package_version}, server.json={server_version}"
+              )
+          PY
 
       - name: Run tests
         run: python -m unittest discover -s tests
