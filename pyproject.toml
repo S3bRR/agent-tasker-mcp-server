@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-tasker-mcp-server"
+version = "2.7.0"
+description = "Minimal stdio MCP server for parallel task execution by AI agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "S3bRR" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+keywords = [
+  "mcp",
+  "model-context-protocol",
+  "ai-agent",
+  "claude",
+  "parallel",
+  "automation"
+]
+
+[project.urls]
+Homepage = "https://github.com/S3bRR/agent-tasker-mcp"
+Repository = "https://github.com/S3bRR/agent-tasker-mcp"
+Documentation = "https://github.com/S3bRR/agent-tasker-mcp#readme"
+Issues = "https://github.com/S3bRR/agent-tasker-mcp/issues"
+
+[project.scripts]
+agent-tasker-mcp-server = "agent_tasker_mcp.server:cli"
+
+[tool.setuptools]
+packages = ["agent_tasker_mcp", "agent_tasker_mcp.executors"]
