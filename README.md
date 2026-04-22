@@ -1,6 +1,6 @@
 # AgentTasker MCP Server
 
-<!-- mcp-name: io.github.s3brr/agent-tasker-mcp -->
+<!-- mcp-name: io.github.S3bRR/agent-tasker-mcp -->
 
 AgentTasker is a small, stdio-only MCP server for AI agents that need to run multiple tasks quickly and get structured results back in one call.
 
