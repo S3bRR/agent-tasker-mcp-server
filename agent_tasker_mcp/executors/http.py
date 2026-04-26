@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 
 from ..common import HTMLContentExtractor, fallback_html_extract
 from ..models import DEFAULT_MAX_BODY_BYTES, RETRYABLE_HTTP_STATUSES
+from ..version import package_version
 
 
 def default_retries(method: str, retries: Optional[int]) -> int:
@@ -21,7 +22,7 @@ def default_retries(method: str, retries: Optional[int]) -> int:
 
 
 def request_headers(headers: Optional[Dict[str, str]]) -> Dict[str, str]:
-    merged = {"User-Agent": "agent-tasker-mcp-server/2.7.0"}
+    merged = {"User-Agent": f"agent-tasker-mcp-server/{package_version()}"}
     if headers:
         merged.update(headers)
     return merged

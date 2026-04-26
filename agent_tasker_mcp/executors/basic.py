@@ -12,6 +12,11 @@ from typing import Any, Dict
 from ..common import PYTHON_EXECUTION_RUNNER
 
 
+def _preview_output(value: str, limit: int = 500) -> str:
+    stripped = value.strip()
+    return stripped[:limit] + "..." if len(stripped) > limit else stripped
+
+
 def execute_python_code(payload: Dict[str, Any]) -> Any:
     """Execute Python code string and return the result variable."""
     code = payload["code"]
@@ -53,16 +58,19 @@ def execute_shell_command(payload: Dict[str, Any]) -> Dict[str, Any]:
             text=True,
             timeout=timeout,
         )
-        return {
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "return_code": result.returncode,
-            "command": command,
-        }
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"Command timed out after {timeout}s")
     except Exception as exc:
         raise RuntimeError(f"Command execution failed: {exc}")
+    if result.returncode != 0:
+        detail = _preview_output(result.stderr) or _preview_output(result.stdout) or "No output"
+        raise RuntimeError(f"Command failed with exit code {result.returncode}: {command}\n{detail}")
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "return_code": result.returncode,
+        "command": command,
+    }
 
 
 def execute_file_read(payload: Dict[str, Any]) -> Dict[str, Any]:

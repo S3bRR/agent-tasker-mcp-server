@@ -12,7 +12,6 @@ from collections import deque
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, replace
 from datetime import datetime
-from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict, List, Optional, TextIO
 
 try:
@@ -23,14 +22,12 @@ except ImportError:  # pragma: no cover - platform dependent
 from .common import apply_output_mode
 from .models import DEFAULT_MAX_PAYLOAD_BYTES, DEFAULT_MAX_TASKS, TaskType
 from .registry import TASK_SPECS, build_payload, execute_batch_schema, execute_schema, validate_name, validate_payload
+from .version import package_version
 
 SERVER_NAME = "agent-tasker"
 SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
+SERVER_VERSION = package_version()
 
-try:
-    SERVER_VERSION = version("agent-tasker-mcp-server")
-except PackageNotFoundError:  # pragma: no cover - source checkout
-    SERVER_VERSION = "dev"
 
 class _LifecycleError(RuntimeError):
     pass
@@ -81,6 +78,14 @@ def _tool_result(payload: Dict[str, Any], *, is_error: bool = False) -> Dict[str
         "structuredContent": payload,
         "isError": is_error,
     }
+
+
+def _tool_payload_failed(payload: Dict[str, Any]) -> bool:
+    task = payload.get("task")
+    if isinstance(task, dict):
+        return task.get("status") == "failed"
+    failed = payload.get("failed")
+    return isinstance(failed, int) and failed > 0
 
 
 class AgentTasker:
@@ -443,7 +448,8 @@ class MCPServer:
             if handler is None:
                 raise ValueError(f"Unknown tool: {name}")
             try:
-                return _tool_result(handler(arguments))
+                payload = handler(arguments)
+                return _tool_result(payload, is_error=_tool_payload_failed(payload))
             except Exception as exc:
                 return _tool_result({"error": str(exc)}, is_error=True)
         raise KeyError(method)

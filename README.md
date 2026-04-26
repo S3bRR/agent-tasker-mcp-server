@@ -43,32 +43,37 @@ Public MCP tools:
 
 ## Install
 
+Requirements:
+
+- Python 3.10+
+- A local MCP client that can run stdio servers
+
 ### Recommended: `uvx`
 
-Once the package is live on PyPI:
-
-```bash
-uvx agent-tasker-mcp-server --workers 8
-```
-
-Until then, run directly from GitHub:
+Run directly from GitHub:
 
 ```bash
 uvx --from git+https://github.com/S3bRR/agent-tasker-mcp.git agent-tasker-mcp-server --workers 8
 ```
 
-### `pipx`
-
-Once the package is live on PyPI:
+Once the package is live on PyPI, the command becomes:
 
 ```bash
-pipx install agent-tasker-mcp-server
+uvx agent-tasker-mcp-server --workers 8
 ```
 
-Until then:
+### `pipx`
+
+Install directly from GitHub:
 
 ```bash
 pipx install git+https://github.com/S3bRR/agent-tasker-mcp.git
+```
+
+Once the package is live on PyPI, the command becomes:
+
+```bash
+pipx install agent-tasker-mcp-server
 ```
 
 ### Local clone
@@ -79,18 +84,13 @@ cd agent-tasker-mcp
 ./setup.sh
 ```
 
+`setup.sh` creates a local `.venv`, installs this package into it, and prints an
+absolute MCP config snippet. If `python3 -m venv` is not available, it falls back
+to `virtualenv` when installed.
+
 ## MCP Client Configuration
 
-### Published package
-
-```json
-{
-  "command": "uvx",
-  "args": ["agent-tasker-mcp-server", "--workers", "8"]
-}
-```
-
-### GitHub source
+### GitHub Source
 
 ```json
 {
@@ -105,6 +105,15 @@ cd agent-tasker-mcp
 }
 ```
 
+### Installed Package
+
+```json
+{
+  "command": "agent-tasker-mcp-server",
+  "args": ["--workers", "8"]
+}
+```
+
 ### Local checkout
 
 ```json
@@ -113,6 +122,8 @@ cd agent-tasker-mcp
   "args": ["--workers", "8"]
 }
 ```
+
+Use the exact absolute path printed by `./setup.sh` for local checkouts.
 
 ## Usage
 
@@ -217,9 +228,8 @@ Do not expose this server directly to untrusted users.
 Create a local environment:
 
 ```bash
-python3 -m venv .venv
+./setup.sh
 source .venv/bin/activate
-pip install .
 ```
 
 Run the server:

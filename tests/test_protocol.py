@@ -155,6 +155,42 @@ class ProtocolTests(unittest.TestCase):
         )
         self.assertEqual(response["error"]["code"], -32602)
 
+    def test_execute_failed_task_sets_mcp_is_error(self) -> None:
+        self.server.initialize()
+        response = self.server.request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "execute",
+                    "arguments": {"task_type": "file_read", "path": "/tmp/definitely_missing_agent_tasker_file"},
+                },
+            }
+        )
+        self.assertTrue(response["result"]["isError"])
+        payload = response["result"]["structuredContent"]
+        self.assertEqual(payload["task"]["status"], "failed")
+        self.assertIn("File not found", payload["task"]["error"])
+
+    def test_execute_shell_nonzero_sets_mcp_is_error(self) -> None:
+        self.server.initialize()
+        response = self.server.request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "execute",
+                    "arguments": {"task_type": "shell_command", "command": "exit 7", "timeout": 5},
+                },
+            }
+        )
+        self.assertTrue(response["result"]["isError"])
+        payload = response["result"]["structuredContent"]
+        self.assertEqual(payload["task"]["status"], "failed")
+        self.assertIn("exit code 7", payload["task"]["error"])
+
     def test_ping_allowed_before_initialize(self) -> None:
         response = self.server.request({"jsonrpc": "2.0", "id": 1, "method": "ping", "params": {}})
         self.assertEqual(response["result"], {})
@@ -177,8 +213,44 @@ class ProtocolTests(unittest.TestCase):
                 },
             }
         )
+        self.assertTrue(response["result"]["isError"])
         payload = response["result"]["structuredContent"]
         tasks = {task["name"]: task for task in payload["results"]}
         self.assertEqual(tasks["fail"]["status"], "failed")
         self.assertEqual(tasks["blocked"]["status"], "failed")
         self.assertIn("Blocked by failed dependencies: fail", tasks["blocked"]["error"])
+
+    def test_execute_batch_any_failed_task_sets_mcp_is_error(self) -> None:
+        self.server.initialize()
+        response = self.server.request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "execute_batch",
+                    "arguments": {
+                        "tasks": [
+                            {"name": "ok", "task_type": "python_code", "code": "result = 1"},
+                            {"name": "missing", "task_type": "file_read", "path": "/tmp/definitely_missing_agent_tasker_file"},
+                        ]
+                    },
+                },
+            }
+        )
+        self.assertTrue(response["result"]["isError"])
+        payload = response["result"]["structuredContent"]
+        self.assertEqual(payload["completed"], 1)
+        self.assertEqual(payload["failed"], 1)
+
+    def test_module_execution_has_no_runtime_warning(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        completed = subprocess.run(
+            [sys.executable, "-m", "agent_tasker_mcp.server", "--help"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0)
+        self.assertNotIn("RuntimeWarning", completed.stderr)

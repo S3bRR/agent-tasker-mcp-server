@@ -8,8 +8,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from agent_tasker_mcp.executors.http import request_headers
 from agent_tasker_mcp.models import TaskType
 from agent_tasker_mcp.server import AgentTasker
+from agent_tasker_mcp.version import package_version
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -103,6 +105,9 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(task["status"], "completed")
         self.assertEqual(task["result"]["status_code"], 200)
         self.assertEqual(task["result"]["attempts"], 3)
+
+    def test_default_http_user_agent_uses_package_version(self) -> None:
+        self.assertEqual(request_headers(None)["User-Agent"], f"agent-tasker-mcp-server/{package_version()}")
 
     def test_http_request_body_limit_truncates(self) -> None:
         root = f"http://127.0.0.1:{self.port}"
@@ -281,3 +286,38 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(ordered["fail"]["status"], "failed")
         self.assertEqual(ordered["downstream"]["status"], "failed")
         self.assertIn("Blocked by failed dependencies: fail", ordered["downstream"]["error"])
+
+    def test_shell_command_nonzero_exit_marks_task_failed(self) -> None:
+        tasker = AgentTasker(max_workers=1)
+        result = tasker.execute_tasks(
+            [
+                (
+                    "shell_fail",
+                    TaskType.SHELL_COMMAND,
+                    {"command": "printf 'bad output' >&2; exit 7", "timeout": 5},
+                )
+            ]
+        )
+        task = result["results"][0]
+        self.assertEqual(result["completed"], 0)
+        self.assertEqual(result["failed"], 1)
+        self.assertEqual(task["status"], "failed")
+        self.assertIsNone(task["result"])
+        self.assertIn("exit code 7", task["error"])
+        self.assertIn("bad output", task["error"])
+
+    def test_failed_shell_command_blocks_downstream_dependency(self) -> None:
+        tasker = AgentTasker(max_workers=4)
+        result = tasker.execute_tasks(
+            [
+                ("shell_fail", TaskType.SHELL_COMMAND, {"command": "exit 7", "timeout": 5}),
+                ("dependent", TaskType.PYTHON_CODE, {"code": "result = 'ran'"}, ["shell_fail"]),
+            ]
+        )
+        ordered = {task["name"]: task for task in result["results"]}
+        self.assertEqual(result["completed"], 0)
+        self.assertEqual(result["failed"], 2)
+        self.assertEqual(ordered["shell_fail"]["status"], "failed")
+        self.assertEqual(ordered["dependent"]["status"], "failed")
+        self.assertIsNone(ordered["dependent"]["result"])
+        self.assertIn("Blocked by failed dependencies: shell_fail", ordered["dependent"]["error"])

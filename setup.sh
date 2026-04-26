@@ -62,13 +62,50 @@ if ! "$PYTHON_BIN" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,
   exit 1
 fi
 
+case "$VENV_DIR" in
+  /*) ;;
+  *) VENV_DIR="$ROOT_DIR/$VENV_DIR" ;;
+esac
+
 if [[ "$RECREATE" -eq 1 && -d "$VENV_DIR" ]]; then
   rm -rf "$VENV_DIR"
 fi
 
+create_virtual_environment() {
+  if [[ "$QUIET" -eq 1 ]]; then
+    "$PYTHON_BIN" -m venv "$VENV_DIR" >/dev/null 2>&1 && return 0
+  else
+    "$PYTHON_BIN" -m venv "$VENV_DIR" && return 0
+  fi
+
+  rm -rf "$VENV_DIR"
+  if "$PYTHON_BIN" -m virtualenv --version >/dev/null 2>&1; then
+    [[ "$QUIET" -eq 0 ]] && echo "python3 -m venv failed; falling back to virtualenv"
+    if [[ "$QUIET" -eq 1 ]]; then
+      "$PYTHON_BIN" -m virtualenv "$VENV_DIR" >/dev/null
+    else
+      "$PYTHON_BIN" -m virtualenv "$VENV_DIR"
+    fi
+    return 0
+  fi
+
+  cat >&2 <<EOF
+Error: failed to create a virtual environment with python3 -m venv.
+
+Install Python's venv package for your OS, or install virtualenv so setup.sh can
+use it as a fallback.
+
+Examples:
+  Debian/Ubuntu:  sudo apt install python3-venv
+  Python/pip:     python3 -m pip install --user virtualenv
+  pipx:           pipx install virtualenv
+EOF
+  return 1
+}
+
 if [[ ! -d "$VENV_DIR" ]]; then
   [[ "$QUIET" -eq 0 ]] && echo "Creating virtual environment: $VENV_DIR"
-  "$PYTHON_BIN" -m venv "$VENV_DIR"
+  create_virtual_environment
 else
   [[ "$QUIET" -eq 0 ]] && echo "Using existing virtual environment: $VENV_DIR"
 fi
